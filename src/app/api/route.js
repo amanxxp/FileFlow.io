@@ -3,8 +3,6 @@ import fs from "fs";
 import path from "path";
 import AdmZip from "adm-zip";
 
-
-
 const extractZipFile = (zipFilePath, outputDir) => {
   try {
     const zip = new AdmZip(zipFilePath);
@@ -15,42 +13,42 @@ const extractZipFile = (zipFilePath, outputDir) => {
   }
 };
 
-const readFilesRecursively = (dirPath) => {
-  const files = [];
-
+const readFilesRecursively = (dirPath, fileSet) => {
   fs.readdirSync(dirPath).forEach((file) => {
     const fullPath = path.join(dirPath, file);
 
     if (fs.statSync(fullPath).isDirectory()) {
-      files.push(...readFilesRecursively(fullPath)); // Recursively read directories
+      readFilesRecursively(fullPath, fileSet); // Recursively read directories
     } else if (path.extname(fullPath) === ".zip") {
-      // Extract ZIP files
-      const extractDir = path.join(dirPath, path.basename(fullPath, ".zip")); // Create a directory for extracted files
+      const extractDir = path.join(dirPath, path.basename(fullPath, ".zip"));
       if (!fs.existsSync(extractDir)) {
         fs.mkdirSync(extractDir, { recursive: true });
       }
       extractZipFile(fullPath, extractDir);
-      files.push(...readFilesRecursively(extractDir)); // Recursively read the extracted files
+      readFilesRecursively(extractDir, fileSet);
     } else {
-      files.push(fullPath);
+      if (!fileSet.has(fullPath)) {
+        fileSet.add(fullPath);
+      }
     }
   });
-
-  return files;
 };
 
 export async function GET(req) {
-  // Define the directory path
   const directoryPath = path.join(process.cwd(), "public/modules");
-  const searchString = req.nextUrl.searchParams.get('search') || ''; // Get the search string from the query parameter
+  const searchString = req.nextUrl.searchParams.get("search") || "";
+  const page = parseInt(req.nextUrl.searchParams.get("page")) || 1;
+  const limit = parseInt(req.nextUrl.searchParams.get("limit")) || 3;
 
   try {
-    const allFiles = readFilesRecursively(directoryPath);
-    const fileContents = allFiles.map((file) => {
+    const fileSet = new Set();
+    readFilesRecursively(directoryPath, fileSet);
+
+    const fileContents = Array.from(fileSet).map((file) => {
       const content = fs.readFileSync(file, "utf8");
       return {
-        file: file.replace(`${process.cwd()}\\public`, ""), // Get relative path
-        content: content,
+        file: file.replace(`${process.cwd()}\\public`, ""),
+        content,
       };
     });
 
@@ -58,10 +56,18 @@ export async function GET(req) {
       file.content.includes(searchString)
     );
 
-    // Return the JSON response with filtered files
-    return NextResponse.json(filteredFiles, { status: 200 });
+    // Pagination logic: slice the data to return only the relevant files
+    const startIndex = (page - 1) * limit;
+    const paginatedFiles = filteredFiles.slice(startIndex, startIndex + limit);
+
+    return NextResponse.json(
+      {
+        files: paginatedFiles,
+        totalFiles: filteredFiles.length, // Return the total number of files for pagination calculation
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    // Handle errors
     return NextResponse.json({ error: "Error reading files" }, { status: 500 });
   }
 }
