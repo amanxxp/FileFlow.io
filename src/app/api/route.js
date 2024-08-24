@@ -5,6 +5,7 @@ import path from 'path';
 export async function GET(req) {
   // Define the directory path
   const directoryPath = path.join(process.cwd(), 'public/modules');
+  const searchString = ''; // Define the string to search for
 
   const readFilesRecursively = (dirPath) => {
     const files = [];
@@ -23,13 +24,18 @@ export async function GET(req) {
 
   try {
     const allFiles = readFilesRecursively(directoryPath);
-    const fileContents = allFiles.map(file => ({
-      file: file.replace(`${process.cwd()}\F\public`, ''), // Get relative path
-      content: fs.readFileSync(file, 'utf8') // Read file content
-    }));
+    const fileContents = allFiles.map(file => {
+        const content = fs.readFileSync(file, 'utf8');
+        return {
+          file: file.replace(`${process.cwd()}\\public`, ''), // Get relative path
+          content: content
+        };
+    });
 
-    // Return the JSON response with file names and contents
-    return NextResponse.json(fileContents, { status: 200 });
+    const filteredFiles = fileContents.filter(file => file.content.includes(searchString));
+
+    // Return the JSON response with filtered files
+    return NextResponse.json(filteredFiles, { status: 200 });
   } catch (error) {
     // Handle errors
     return NextResponse.json({ error: 'Error reading files' }, { status: 500 });
