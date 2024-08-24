@@ -42,7 +42,7 @@ const readFilesRecursively = (dirPath) => {
 export async function GET(req) {
   // Define the directory path
   const directoryPath = path.join(process.cwd(), "public/modules");
-  const searchString = ""; // Define the string to search for
+  const searchString = req.nextUrl.searchParams.get('search') || ''; // Get the search string from the query parameter
 
   try {
     const allFiles = readFilesRecursively(directoryPath);
