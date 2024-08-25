@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { toast } from 'react-toastify'; // Import toast
 
 const Page = () => {
   const [fileData, setFileData] = useState([]);
@@ -12,7 +13,7 @@ const Page = () => {
   const fetchFiles = async (page = 1) => {
     try {
       const response = await fetch(
-        `/api/?search=${encodeURIComponent(
+        `/api/search/?search=${encodeURIComponent(
           searchString
         )}&page=${page}&limit=${limit}`
       );
@@ -27,13 +28,15 @@ const Page = () => {
       setError(err.message);
     }
   };
+  const [currentlimit,setcurrentlimit] = useState(limit)
 
   useEffect(() => {
     fetchFiles(currentPage);
-  }, [currentPage]); // Fetch files when the page changes
+  }, [currentPage,searchString]); // Fetch files when the page changes
 
   const handleSearch = () => {
     setCurrentPage(1); // Reset to first page on new search
+    setcurrentlimit(limit);
     fetchFiles(1);
   };
 
@@ -45,6 +48,16 @@ const Page = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
+  };
+
+  const handleFileDownload = (filePath) => {
+    // Trigger the download of the file
+    const downloadLink = document.createElement("a");
+    downloadLink.href = `/api/download?filePath=${encodeURIComponent(filePath)}`;
+    downloadLink.setAttribute("download", filePath.split("/").pop());
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
   };
 
   return (
@@ -72,14 +85,20 @@ const Page = () => {
           placeholder="100"
           value={limit}
           onKeyDown={handleKeyDown}
-          onChange={(e) => setlimit(e.target.value)}
+          onChange={(e) =>{
+            const value =e.target.value;
+            if (value === '' || parseInt(value, 10) > 0) {
+              setlimit(value);
+            }
+          }}
           className="text-black px-3 py-2 border border-gray-300 rounded-md"
         />
         <button onClick={handleSearch} className="ml-4 mt-4 px-[12px] py-2 bg-blue-500 text-white rounded-md">Set limit </button>
+        <div className="mt-2">Current Limit is {currentlimit} Files/Page</div>
       </div>
 
       <div className="pagination ">
-        {Array.from({ length: totalPages }, (_, index) => (
+        {Array.from({ length: totalPages}, (_, index) => (
           <button
             key={index + 1}
             onClick={() => handlePageChange(index + 1)}
@@ -105,12 +124,18 @@ const Page = () => {
               <br />
               <strong>Content:</strong>
               <pre>{file.content}</pre>
+              <button
+                onClick={() => handleFileDownload(file.file)}
+                className="mt-4 px-4 py-2 bg-green-500 text-white rounded-md"
+              >
+                Download File
+              </button>
             </li>
           ))}
         </ul>
       )}
 
-      {/* Pagination Controls */}
+      {/* Pagination Controls */} 
       <div className="pagination">
         {Array.from({ length: totalPages }, (_, index) => (
           <button
