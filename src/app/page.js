@@ -9,14 +9,15 @@ const Page = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [error, setError] = useState(null);
   const [limit, setlimit] = useState(3); // Number of files per page
-  const [filescount, setfilescount] = useState(10);
+  const [filescount, setfilescount] = useState(0);
+  const [Prevstart, setPrevstart] = useState(0);
 
   const fetchFiles = async (page = 1) => {
     try {
       const response = await fetch(
         `/api/search/?search=${encodeURIComponent(
           searchString
-        )}&page=${page}&limit=${limit}&filecount=${filescount}`
+        )}&page=${page}&limit=${limit}&start=${Prevstart}&filecount=${filescount}`
       );
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -38,7 +39,6 @@ const Page = () => {
   const handleSearch = () => {
     setCurrentPage(1); // Reset to first page on new search
     setcurrentlimit(limit);
-    setfilescount(filescount);
     fetchFiles(1);
   };
 
@@ -93,6 +93,7 @@ const Page = () => {
             onChange={(e) => {
               const value = e.target.value;
               if (value === "" || parseInt(value, 10) > 0) {
+                setPrevstart(filescount);
                 setfilescount(value);
               }
             }}

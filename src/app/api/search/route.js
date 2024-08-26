@@ -13,19 +13,19 @@ const extractZipFile = (zipFilePath, outputDir) => {
   }
 };
 
-const readFilesRecursively = (dirPath, fileSet, filecount, countRef) => {
+const readFilesRecursively = (dirPath, fileSet,start, filecount, countRef) => {
   fs.readdirSync(dirPath).forEach((file) => {
     const fullPath = path.join(dirPath, file);
 
     if (fs.statSync(fullPath).isDirectory()) {
-      readFilesRecursively(fullPath, fileSet, filecount, countRef); // Recursively read directories
+      readFilesRecursively(fullPath, fileSet,start, filecount, countRef); // Recursively read directories
     } else if (path.extname(fullPath) === ".zip") {
       const extractDir = path.join(dirPath, path.basename(fullPath, ".zip"));
       if (!fs.existsSync(extractDir)) {
         fs.mkdirSync(extractDir, { recursive: true });
       }
       extractZipFile(fullPath, extractDir);
-      readFilesRecursively(extractDir, fileSet, filecount, countRef);
+      readFilesRecursively(extractDir, fileSet,start, filecount, countRef);
     } else {
       if (countRef.count >= filecount) {
         return; // Stop further processing when limit is reached
@@ -33,10 +33,12 @@ const readFilesRecursively = (dirPath, fileSet, filecount, countRef) => {
 
       console.log({ filecount, count: countRef.count });
 
-      if (!fileSet.has(fullPath)) {
-        fileSet.add(fullPath);
-        countRef.count++; // Increment the count using the reference object
+      if(countRef.count>=start){
+        if (!fileSet.has(fullPath)) {
+          fileSet.add(fullPath);
+        }
       }
+      countRef.count++; // Increment the count using the reference object
     }
   });
 };
@@ -47,11 +49,12 @@ export async function GET(req) {
   const page = parseInt(req.nextUrl.searchParams.get("page")) || 1;
   const limit = parseInt(req.nextUrl.searchParams.get("limit")) || 3;
   const filecount = parseInt(req.nextUrl.searchParams.get("filecount")) || 10;
+  const start = parseInt(req.nextUrl.searchParams.get("start")) || 0;
 
   try {
     const fileSet = new Set();
     const countRef = { count: 0 };
-    readFilesRecursively(directoryPath, fileSet, filecount, countRef);
+    readFilesRecursively(directoryPath, fileSet,start, filecount, countRef);
 
     const fileContents = Array.from(fileSet).map((file) => {
       const content = fs.readFileSync(file, "utf8");
