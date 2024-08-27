@@ -31,6 +31,7 @@ const Page = () => {
     }
   };
   const [currentlimit, setcurrentlimit] = useState(limit);
+  const [artists, setArtists] = useState([0]);
 
   useEffect(() => {
     fetchFiles(currentPage);
@@ -39,6 +40,11 @@ const Page = () => {
   const handleSearch = () => {
     setCurrentPage(1); // Reset to first page on new search
     setcurrentlimit(limit);
+    artists.push(Number(filescount));
+    // artists[artists.length-2]
+    setPrevstart(artists[artists.length - 1]);
+    console.log(artists);
+    // setPrevstart(filescount);
     fetchFiles(1);
   };
 
