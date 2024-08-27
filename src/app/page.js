@@ -6,7 +6,7 @@ const Page = () => {
   const [fileData, setFileData] = useState([]);
   const [searchString, setSearchString] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
+  const [totalPages, setTotalPages] = useState(10);
   const [error, setError] = useState(null);
   const [limit, setlimit] = useState(3); // Number of files per page
   const [filescount, setfilescount] = useState(0);
@@ -16,8 +16,8 @@ const Page = () => {
     try {
       const response = await fetch(
         `/api/search/?search=${encodeURIComponent(
-          searchString
-        )}&page=${page}&limit=${limit}&start=${Prevstart}&filecount=${filescount}`
+          searchString,
+        )}&page=${page}&limit=${limit}&start=${Prevstart}&filecount=${filescount}`,
       );
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -56,13 +56,15 @@ const Page = () => {
     // Trigger the download of the file
     const downloadLink = document.createElement("a");
     downloadLink.href = `/api/download?filePath=${encodeURIComponent(
-      filePath
+      filePath,
     )}`;
     downloadLink.setAttribute("download", filePath.split("/").pop());
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
   };
+
+  const [show, setshow] = useState(0);
 
   return (
     <div>
@@ -93,7 +95,7 @@ const Page = () => {
             onChange={(e) => {
               const value = e.target.value;
               if (value === "" || parseInt(value, 10) > 0) {
-                setPrevstart(filescount);
+                // setPrevstart(filescount);
                 setfilescount(value);
               }
             }}
@@ -137,7 +139,9 @@ const Page = () => {
             onClick={() => handlePageChange(index + 1)}
             disabled={currentPage === index + 1}
             className={`px-4 py-2 mt-10 mx-1 ${
-              currentPage === index + 1 ? "bg-gray-900" : "bg-gray-500"
+              currentPage === index + 1
+                ? "bg-gray-400"
+                : "border border-[2px] border-gray-400"
             }`}
           >
             {index + 1}
@@ -152,11 +156,15 @@ const Page = () => {
       ) : (
         <ul className="p-10">
           {fileData.map((file, index) => (
-            <li key={index} className="p-10">
+            <li
+              key={index}
+              className="p-10 cursor-pointer"
+              onClick={() => setshow(!show)}
+            >
               <strong>File:</strong> {file.file}
               <br />
               <strong>Content:</strong>
-              <pre>{file.content}</pre>
+              {show && <pre>{file.content}</pre>}
               <button
                 onClick={() => handleFileDownload(file.file)}
                 className="mt-4 px-4 py-2 bg-green-500 text-white rounded-md"
@@ -175,8 +183,10 @@ const Page = () => {
             key={index + 1}
             onClick={() => handlePageChange(index + 1)}
             disabled={currentPage === index + 1}
-            className={`px-4 py-2 mx-1 ${
-              currentPage === index + 1 ? "bg-gray-900" : "bg-gray-500"
+            className={`px-4 py-2 mt-10 mx-1 ${
+              currentPage === index + 1
+                ? "bg-gray-400"
+                : "border border-[2px] border-gray-400"
             }`}
           >
             {index + 1}
